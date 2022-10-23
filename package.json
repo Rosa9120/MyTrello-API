@@ -11,6 +11,11 @@
   "author": "rosa",
   "license": "ISC",
   "dependencies": {
+    "jwt-simple": "^0.5.6",
+    "knex": "^2.3.0",
+    "moment": "^2.29.4",
+    "multer": "^1.4.5-lts.1",
+    "sqlite3": "^5.1.2",
     "swagger-ui-express": "^4.5.0"
   }
 }

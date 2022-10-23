@@ -1,6 +1,8 @@
 var express = require('express');
 var jwt = require('jwt-simple')
 var moment = require('moment')
+var multer = require('multer')
+var path = require('path');
 const knexConfig = require('./db/knexfile');
 const knex = require('knex')(knexConfig.development.connection.filename)
 const sqlite3 = require('sqlite3').verbose();
@@ -12,9 +14,16 @@ app.use(express.json())
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
+const upload = multer({ dest: 'uploads/' })
 
 var secret = 'secreto'
+
+app.post('/tableros/:id/background', chequeaJWT, (pet, res) => {
+    upload.single("imagen")(pet, res, function (err) { // La imagen la guarda en formato base64, es por eso que no podemos previsualizarla
+        console.log(pet.file) // Si imprimimos pet.file, podemos ver que nos devuelve un objeto con la informacion de la imagen, como el nombre, el path, el mimetype (en el ejemplo sale image/jpeg), etc.
+        res.send({ mensaje: "Archivo insertado correctamente" })
+    })
+})
 
 //En una app con autentificación basada en Token, el login genera y devuelve el token
 app.post('/login', function(pet, resp){
@@ -84,18 +93,33 @@ function chequeaJWT(pet, resp, next) {
 //get de una coleccion
 app.get('/tableros', function(pet, res) {
 
+    var offset = pet.query.offset !== undefined && !isNaN(pet.query.offset) && parseInt(pet.query.offset) >= 0 ? parseInt(pet.query.offset) : 0; // Por defecto el offset sera 0
+    var limit = pet.query.limit !== undefined && !isNaN(pet.query.limit) && parseInt(pet.query.limit) >= 0 ? parseInt(pet.query.limit) : 10; // Por defecto el limite sera 10
+
     let sql = `SELECT id, nombre, user_id
+    FROM tableros LIMIT ? OFFSET ?`;
+
+    let sqlCount = `SELECT id
     FROM tableros`;
 
-    db.all(sql, (err, rows) => {
-    if (err || rows == null) {
-        res.status(404)  
-        res.send({cod:404, mensaje:"El item no existe"})
-    }
-    else
-        res.send({tablero: Array.from(rows.values())})
+    db.all(sql, [limit, offset], (err, rows) => {
+        if (err || rows == null) {
+            res.status(404)  
+            res.send({cod:404, mensaje:"El item no existe"})
+        } else{
+            db.all(sqlCount, (err, rowsCount) => {
+                res.send({
+                    tableros: Array.from(rows.values()),
+                    offset: offset,
+                    limit: limit,
+                    total: rowsCount.length,
+                    count: rows.length,
+                    next_page: rows.length === limit ? "http://localhost:3000/tableros?offset=" + (offset + limit) + "&limit=" + limit : null,
+                    prev_page: offset > 0 ? "http://localhost:3000/tableros?offset=" + ((offset - limit) < 0 ? 0 : (offset - limit)) + "&limit=" + limit : null
+                })
+            })
+        }
     });
-
 })
 
 //get de un recurso sabiendo su id
