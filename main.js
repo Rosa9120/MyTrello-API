@@ -11,9 +11,6 @@ let db = new sqlite3.Database('./db/db.sqlite3');
 var app = express();
 app.use(express.json())
 
-const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger.json');
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 const upload = multer({ dest: 'uploads/' })
 
 var secret = 'secreto'
@@ -351,7 +348,7 @@ app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
             db.run(sql2, [pet.body.nombre !== undefined ? pet.body.nombre : row.nombre, pet.body.user_id !== undefined ? pet.body.user_id : row.user_id, idtablero], (err, row) => {
             if (err) {
                 res.status(500)  
-                res.send({cod:404, mensaje:"No se ha podido actualizar"})
+                res.send({cod:500, mensaje:"No se ha podido actualizar"})
             }
             else{
                 //hago select del recurso actualizado para poder devolverlo

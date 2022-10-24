@@ -1,0 +1,464 @@
+{
+	"info": {
+		"_postman_id": "052e13ce-8323-4cb3-9da9-b0c405077ecd",
+		"name": "ADI Ejercicio_2",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "18649930"
+	},
+	"item": [
+		{
+			"name": "Get todos los tableros",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Usuario hace get para ver todos los tableros\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"tableros\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/tableros",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login del usuario",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Usuario hace login y recibe un token\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"token\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"login\" : \"ilyan@ua.es\",\n    \"password\" : \"123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Crear nuevo tablero",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Usuario crea un tablero y recibe respuesta con una cabecera Location que contiene la URL al recurso creado\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.header(\"Location\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwibG9naW4iOiJpbHlhbkB1YS5lcyIsImV4cCI6MTY2NzEyNzY2ODE4MH0.hqUJ2yz7iIVLISrgI9qqATzakAVuGXHuDEu0meMCtFo",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"nombre\" : \"ADI\",\n    \"etiquetas\" : [\"copia\", \"bug\", \"enhancement\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/tableros",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Submit image (Multi-form data)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Archivo binario se guarda correctamente\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"mensaje\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwibG9naW4iOiJpbHlhbkB1YS5lcyIsImV4cCI6MTY2NzEyNzY2ODE4MH0.hqUJ2yz7iIVLISrgI9qqATzakAVuGXHuDEu0meMCtFo",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "imagen",
+							"type": "file",
+							"src": "/Users/ilyan/Downloads/_ilyaan.jpg"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:3000/tableros/1/background",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros",
+						"1",
+						"background"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get tablero mediante :id",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Usuario recupera el primer tablero\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"tablero\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/tableros/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Eliminar tablero que no existe",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Intentando eliminar un recurso que no existe\", function () { ",
+							"     pm.response.to.have.status(404);",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"cod\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwibG9naW4iOiJpbHlhbkB1YS5lcyIsImV4cCI6MTY2NzEyNzY2ODE4MH0.hqUJ2yz7iIVLISrgI9qqATzakAVuGXHuDEu0meMCtFo",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/tableros/2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros",
+						"2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get una columna de un tablero",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Usuario recupera una columna que pertenece al tablero 1\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"columna\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/tableros/1/columnas/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros",
+						"1",
+						"columnas",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get una tarjeta de una columna",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Usuario recupera una tarjeta de la columna 1, que pertenece al tablero 1\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"tarjeta\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/tableros/1/columnas/1/tarjetas/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros",
+						"1",
+						"columnas",
+						"1",
+						"tarjetas",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Intentar mover una tarjeta que no existe a otra columna",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Tarjeta no existe\", function () { ",
+							"     pm.response.to.have.status(404);",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"cod\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwibG9naW4iOiJpbHlhbkB1YS5lcyIsImV4cCI6MTY2NzEyNzY2ODE4MH0.hqUJ2yz7iIVLISrgI9qqATzakAVuGXHuDEu0meMCtFo",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"columna\" : 2\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/tableros/1/columnas/1/tarjetas/5",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros",
+						"1",
+						"columnas",
+						"1",
+						"tarjetas",
+						"5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Cambiar nombre del tablero",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Tablero se actualiza con exito\", function () { ",
+							"     pm.response.to.be.ok;",
+							"     pm.response.to.be.withBody;",
+							"     pm.response.to.have.jsonBody(\"tablero\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MiwibG9naW4iOiJpbHlhbkB1YS5lcyIsImV4cCI6MTY2NzEyNzY2ODE4MH0.hqUJ2yz7iIVLISrgI9qqATzakAVuGXHuDEu0meMCtFo",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"nombre\" : \"NuevoNombre\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3000/tableros/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"tableros",
+						"1"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
