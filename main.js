@@ -540,6 +540,103 @@ app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
     }
 })
 
+// Post nueva tarea en columna
+app.post('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res) { // TODO comprobar que esta logueado
+    var idtablero = parseInt(pet.params.idtablero)
+    var idcolumna = parseInt(pet.params.idcolumna)
+    var nombre = pet.body.nombre
+
+    if (isNaN(idcolumna) || isNaN(idtablero) || nombre == null) {
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"El item no es un numero"})
+    }
+    else { 
+        let sql = `SELECT id
+            FROM columnas
+            WHERE id = ? and tablero_id = ?`;
+
+        db.get(sql, [idcolumna, idtablero], (err, row) => {
+            if (err || row == null) {
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")  
+                res.send({cod:404, mensaje:"El item no existe"})
+            }
+            else {
+                let sql2 = `INSERT INTO tarjetas (nombre, columna_id, descripcion, fechaVencimiento) VALUES (?, ?, ?, ?)`;
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                let mm = today.getMonth() + 1; // Months start at 0!
+                let dd = today.getDate();
+
+                if (dd < 10) dd = '0' + dd;
+                if (mm < 10) mm = '0' + mm;
+
+                const todayFormat = dd + '-' + mm + '-' + yyyy;
+-
+                db.run(sql2, [nombre, idcolumna, '', todayFormat], function(err, row) {
+                    if (err) {
+                        console.log(err)
+                        res.status(500)
+                        res.header('Access-Control-Allow-Origin', "*")
+                        res.send({cod:500, mensaje:"No se ha podido insertar"})
+                    }
+                    else {
+                        let sql3 = `SELECT * FROM tarjetas WHERE id = ?`;
+                        db.get(sql3, [this.lastID], (err, row) => {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({tarjeta: row})
+                        })
+                    }
+                });
+            }
+        });
+    }
+})
+
+// Post nueva columna en tablero
+
+app.post('/tableros/:idtablero/columnas', function(pet,res) { // TODO comprobar que esta logueado
+    var idtablero = parseInt(pet.params.idtablero)
+    var titulo = pet.body.titulo
+
+    if (isNaN(idtablero) || titulo == null) {
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"El item no es un numero"})
+    }
+    else {
+        let sql = `SELECT id
+            FROM tableros
+            WHERE id = ?`;
+
+        db.get(sql, [idtablero], (err, row) => {
+            if (err || row == null) {
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:404, mensaje:"El item no existe"})
+            }
+            else {
+                let sql2 = `INSERT INTO columnas (titulo, tablero_id) VALUES (?, ?)`;
+                db.run(sql2, [titulo, idtablero], function(err, row) {
+                    if (err) {
+                        console.log(err)
+                        res.status(500)
+                        res.header('Access-Control-Allow-Origin', "*")
+                        res.send({cod:500, mensaje:"No se ha podido insertar"})
+                    }
+                    else {
+                        let sql3 = `SELECT * FROM columnas WHERE id = ?`;
+                        db.get(sql3, [this.lastID], (err, row) => {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({columna: row})
+                        })
+                    }
+                });
+            }
+        });
+    }
+})
 
 var listener = app.listen(process.env.PORT||3000, () => {
     console.log(`Servidor en el puerto ${listener.address().port}`);
