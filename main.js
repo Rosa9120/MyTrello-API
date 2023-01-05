@@ -435,7 +435,7 @@ app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res){
 })
 
 //patch: cambiar tarjeta de columna 
-app.patch('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', chequeaJWT, function(pet,res){
+app.patch('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function(pet,res){ // TODO comprobar que esta logueado
     //comprobar que la columna nueva exista 
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
