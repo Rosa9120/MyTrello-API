@@ -11,11 +11,13 @@
   "author": "rosa",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "jwt-simple": "^0.5.6",
     "knex": "^2.3.0",
     "moment": "^2.29.4",
     "multer": "^1.4.5-lts.1",
     "sqlite3": "^5.1.2",
-    "swagger-ui-express": "^4.5.0"
+    "swagger-ui-express": "^4.5.0",
+    "vue": "^3.2.45"
   }
 }

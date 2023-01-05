@@ -3,6 +3,7 @@ var jwt = require('jwt-simple')
 var moment = require('moment')
 var multer = require('multer')
 var path = require('path');
+var cors = require('cors')
 const knexConfig = require('./db/knexfile');
 const knex = require('knex')(knexConfig.development.connection.filename)
 const sqlite3 = require('sqlite3').verbose();
@@ -10,6 +11,11 @@ let db = new sqlite3.Database('./db/db.sqlite3');
 
 var app = express();
 app.use(express.json())
+
+app.use(cors({
+    origin: '*'
+}));
+
 
 const upload = multer({ dest: 'uploads/' })
 
@@ -145,6 +151,47 @@ app.get('/tableros/:id', function(pet,res){
     
 })
 
+
+//get las columnas de un tablero
+app.get('/tableros/:id/columnas', function(pet,res){
+
+    var idtablero = parseInt(pet.params.id)
+    
+    if (isNaN(idtablero)){
+        res.status(400)
+        res.send({cod:400, mensaje:"El item no es un numero"})
+    }
+    else{
+
+        let sql = `SELECT id, nombre, user_id
+        FROM tableros
+        WHERE id  = ?`
+
+        db.get(sql, idtablero, (err, row) => {
+        if (err || row == null) {
+            res.status(404)  
+            res.send({cod:404, mensaje:"El tablero no existe"})
+        }
+        else{
+
+            let sql2 = `SELECT id, titulo
+            FROM columnas WHERE
+            tablero_id = ?`;
+            db.all(sql2, idtablero, (err, rows) => {
+                if (err || rows == null) {
+                    res.status(404)  
+                    res.send({cod:404, mensaje:"El tablero no tiene columnas"})
+                }
+                else{
+                    res.send({columnas: Array.from(rows.values())})
+                }
+            })
+        }
+        });
+    }
+    
+})
+
 //post
 app.post('/tableros', chequeaJWT, function(pet, resp){
 
@@ -209,7 +256,7 @@ app.delete('/tableros/:id', chequeaJWT, function(pet,res){
 
 })
 
-//get de un recurso sabiendo su id
+//get de una columna sabiendo su id
 app.get('/tableros/:idtablero/columnas/:idcolumna', function(pet,res){
 
     var idtablero = parseInt(pet.params.idtablero)
@@ -236,7 +283,7 @@ app.get('/tableros/:idtablero/columnas/:idcolumna', function(pet,res){
 
 })
 
-//get de una columna sabiendo su id
+//get de una tarjeta sabiendo su id
 app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function(pet,res){
 
     var idtablero = parseInt(pet.params.idtablero)
@@ -265,6 +312,42 @@ app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function
 
 })
 
+//get las tarjetas de una columna
+app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res){
+    var idtablero = parseInt(pet.params.idtablero)
+    var idcolumna = parseInt(pet.params.idcolumna)
+
+    if (isNaN(idcolumna) || isNaN(idtablero)){
+        res.status(400)
+        res.send({cod:400, mensaje:"El id no es un numero"})
+    }
+    else{
+        let sql = `SELECT *
+           FROM columnas
+           WHERE id = ? and tablero_id = ?`;
+
+        db.get(sql, [idcolumna, idtablero], (err, row) => {
+        if (err || row == null) {
+            res.status(404)  
+            res.send({cod:404, mensaje:"La columna no existe"})
+        }
+        else{
+            let sql2 = `SELECT id, nombre
+            FROM tarjetas WHERE
+            columna_id = ?`;
+            db.all(sql2, idtablero, (err, rows) => {
+                if (err || rows == null) {
+                    res.status(404)  
+                    res.send({cod:404, mensaje:"El tablero no tiene columnas"})
+                }
+                else{
+                    res.send({tarjetas: Array.from(rows.values())})
+                }
+            })
+        }
+        })
+    }
+})
 
 //patch: cambiar tarjeta de columna 
 app.patch('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', chequeaJWT, function(pet,res){
@@ -338,28 +421,29 @@ app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
 
         db.get(sql, [idtablero], (err, row) => {
 
-        if (err || row == null) {
-            res.status(404)  
-            res.send({cod:404, mensaje:"El tablero no existe"})
-        }
-        else{
-            
-            let sql2 = `UPDATE tableros SET nombre = ?, user_id = ? WHERE id = ?`;
-            db.run(sql2, [pet.body.nombre !== undefined ? pet.body.nombre : row.nombre, pet.body.user_id !== undefined ? pet.body.user_id : row.user_id, idtablero], (err, row) => {
-            if (err) {
-                res.status(500)  
-                res.send({cod:500, mensaje:"No se ha podido actualizar"})
-            }
-            else{
-                //hago select del recurso actualizado para poder devolverlo
-                let sql = `SELECT * FROM tableros WHERE id = ?`;
-                db.get(sql, [idtablero], (err, row) => {
-                    res.send({tablero: row})
-                })
+            if (err || row == null) {
+                res.status(404)  
+                res.send({cod:404, mensaje:"El tablero no existe"})
             }
 
-            });
-        }
+            else{
+                
+                let sql2 = `UPDATE tableros SET nombre = ?, user_id = ? WHERE id = ?`;
+                db.run(sql2, [pet.body.nombre !== undefined ? pet.body.nombre : row.nombre, pet.body.user_id !== undefined ? pet.body.user_id : row.user_id, idtablero], (err, row) => {
+                    if (err) {
+                        res.status(500)  
+                        res.send({cod:500, mensaje:"No se ha podido actualizar"})
+                    }
+
+                    else{
+                        //hago select del recurso actualizado para poder devolverlo
+                        let sql = `SELECT * FROM tableros WHERE id = ?`;
+                        db.get(sql, [idtablero], (err, row) => {
+                            res.send({tablero: row})
+                        })
+                    }
+                });
+            }
         });
     }
 })
@@ -367,18 +451,4 @@ app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
 
 var listener = app.listen(process.env.PORT||3000, () => {
     console.log(`Servidor en el puerto ${listener.address().port}`);
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+})
