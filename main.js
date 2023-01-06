@@ -345,7 +345,7 @@ app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet, res) 
             res.send({cod:400, mensaje:"El id no es un numero"})
         }
         else{
-            let sql = `SELECT id, nombre, descripcion, columna_id
+            let sql = `SELECT id, nombre, descripcion, columna_id, fechaVencimiento
             FROM tarjetas
             WHERE columna_id = ?`;
     
@@ -431,6 +431,61 @@ app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res){
             })
         }
         })
+    }
+})
+
+// update de una tarjeta
+
+app.put('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function(pet,res){ // TODO comprobar que esta logueado
+    var idtablero = parseInt(pet.params.idtablero)
+    var idcolumna = parseInt(pet.params.idcolumna)
+    var idtarjeta = parseInt(pet.params.idtarjeta)
+    var nombre = pet.body.nombre
+    var descripcion = pet.body.descripcion
+    var fechaVencimiento = pet.body.fechaVencimiento
+
+    if (isNaN(idcolumna) || isNaN(idtablero) || isNaN(idtarjeta)){
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"El item no es un numero"})
+    }
+
+    else{
+        
+        let sql = `SELECT id, columna_id
+            FROM tarjetas
+            WHERE id = ? and columna_id = ?`;
+
+        db.get(sql, [idtarjeta, idcolumna], (err, row) => {
+            console.log(sql);
+
+            if (err || row == null) {
+                res.status(404) 
+                res.header('Access-Control-Allow-Origin', "*") 
+                res.send({cod:404, mensaje:"El item no existe"})
+            }
+            else{
+                let sql2 = `UPDATE tarjetas SET nombre = ?, descripcion = ?, fechaVencimiento = ? WHERE id = ?`;
+                console.log(sql2);
+                
+                db.run(sql2, [nombre, descripcion, fechaVencimiento, idtarjeta], (err, row) => {
+                console.log(row);
+                if (err) {
+                    res.status(500)  
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:404, mensaje:"No se ha podido actualizar"})
+                }
+                else{
+                    //hago select del recurso actualizado para poder devolverlo
+                    let sql = `SELECT * FROM tarjetas WHERE id = ? and columna_id = ?`;
+                    db.get(sql, [idtarjeta, idcolumna], (err, row) => {
+                        res.header('Access-Control-Allow-Origin', "*")
+                        res.send({tarjeta: row})
+                    })
+                }
+                });
+            }   
+        });
     }
 })
 
