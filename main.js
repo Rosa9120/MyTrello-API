@@ -540,7 +540,7 @@ app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
     }
 })
 
-// Post nueva tarea en columna
+// Post nueva tarjeta en columna
 app.post('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res) { // TODO comprobar que esta logueado
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
@@ -637,6 +637,63 @@ app.post('/tableros/:idtablero/columnas', function(pet,res) { // TODO comprobar 
         });
     }
 })
+
+// Post registro nuevo usuario
+
+app.post('/usuarios/', function(pet,res) { 
+   
+    paramString = "null, '" + pet.body.nombre + "', '" + pet.body.email + "', '" + pet.body.password + "'";
+
+    //check length of password
+    if (pet.body.password.length < 5) {
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"La contraseña debe tener al menos 5 caracteres"})
+    }
+    //check if email is valid
+    else if (!validateEmail(pet.body.email)) {
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"El email no es válido"})
+    }
+    else{
+        let sql = 'SELECt * FROM users WHERE email = ?';
+        let sql2 = 'INSERT into users (id, name, email, password) VALUES (' + paramString + ')';
+    
+        db.get(sql, [pet.body.email], (err, row) => {
+            if (err || row == null) {
+    
+                db.run(sql2, function(err) {
+                    console.log(this)
+                    if(err){
+                        console.log(err)
+                        res.status(500)
+                        res.header('Access-Control-Allow-Origin', "*")
+                        res.send({cod:500, mensaje:"No se ha podido insertar"})
+                    }
+                    else{
+                        res.header('Location', 'http://localhost:3000/tableros/' + this.lastID)  
+                        res.header('Access-Control-Allow-Origin', "*")
+                        res.send({mensaje:"Usuario creado correctamente"})  
+                    }
+                });
+            }
+            else {  
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:400, mensaje:"El usuario ya existe"})
+            }
+        })
+    
+    }
+    
+})
+
+//function validateEmail
+function validateEmail(email) {
+    var re = /\S+@\S+\.\S+/;
+    return re.test(email);
+}
+
 
 var listener = app.listen(process.env.PORT||3000, () => {
     console.log(`Servidor en el puerto ${listener.address().port}`);
