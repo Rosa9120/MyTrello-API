@@ -672,7 +672,7 @@ app.post('/usuarios/', function(pet,res) {
                         res.send({cod:500, mensaje:"No se ha podido insertar"})
                     }
                     else{
-                        res.header('Location', 'http://localhost:3000/tableros/' + this.lastID)  
+                        res.header('Location', 'http://localhost:3000/tableros/')  
                         res.header('Access-Control-Allow-Origin', "*")
                         res.send({mensaje:"Usuario creado correctamente"})  
                     }
