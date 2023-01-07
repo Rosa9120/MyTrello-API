@@ -103,7 +103,7 @@ app.get('/tableros', function(pet, res) {
     var offset = pet.query.offset !== undefined && !isNaN(pet.query.offset) && parseInt(pet.query.offset) >= 0 ? parseInt(pet.query.offset) : 0; // Por defecto el offset sera 0
     var limit = pet.query.limit !== undefined && !isNaN(pet.query.limit) && parseInt(pet.query.limit) >= 0 ? parseInt(pet.query.limit) : 10; // Por defecto el limite sera 10
 
-    let sql = `SELECT id, nombre, user_id, descripcion
+    let sql = `SELECT id, nombre, user_id
     FROM tableros LIMIT ? OFFSET ?`;
 
     let sqlCount = `SELECT id
@@ -142,7 +142,7 @@ app.get('/tableros/:id', function(pet,res){
         res.send({cod:400, mensaje:"El item no es un numero"})
     }
     else{
-        let sql = `SELECT id, nombre, user_id, descripcion
+        let sql = `SELECT id, nombre, user_id
            FROM tableros
            WHERE id  = ?`;
 
@@ -209,22 +209,22 @@ app.post('/tableros', chequeaJWT, function(pet, resp){
     
     payload = jwt.decode(token, secret)
 
-    paramString = "null, '" + pet.body.nombre + "', " + payload.id + ", '" + pet.body.descripcion + "'";
+    paramString = "null, '" + pet.body.nombre + "', " + payload.id;
 
     //creadoPor = payload.login
 
-    let sql = 'INSERT into tableros (id, nombre, user_id,descripcion) VALUES (' + paramString + ')';
+    let sql = 'INSERT into tableros (id, nombre, user_id) VALUES (' + paramString + ')';
 
     db.run(sql, function(err) {
         console.log(this)
         if(err){
             resp.status(500)
-            resp.header('Access-Control-Allow-Origin', "*")
+            res.header('Access-Control-Allow-Origin', "*")
             resp.send({cod:500, mensaje:"No se ha podido insertar"})
         }
         else{
             resp.header('Location', 'http://localhost:3000/tableros/' + this.lastID)
-            resp.header('Access-Control-Allow-Origin', "*")
+            res.header('Access-Control-Allow-Origin', "*")
             resp.send({mensaje:"OK"})  
         }
 
