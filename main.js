@@ -220,12 +220,12 @@ app.post('/tableros', chequeaJWT, function(pet, resp){
         console.log(this)
         if(err){
             resp.status(500)
-            res.header('Access-Control-Allow-Origin', "*")
+            resp.header('Access-Control-Allow-Origin', "*")
             resp.send({cod:500, mensaje:"No se ha podido insertar"})
         }
         else{
             resp.header('Location', 'http://localhost:3000/tableros/' + this.lastID)
-            res.header('Access-Control-Allow-Origin', "*")
+            resp.header('Access-Control-Allow-Origin', "*")
             resp.send({mensaje:"OK"})  
         }
 
