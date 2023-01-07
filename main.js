@@ -98,7 +98,7 @@ function chequeaJWT(pet, resp, next) {
     }
 }
 
-//get de una coleccion
+//get de una coleccion FUTURO-CHECK?
 app.get('/tableros', function(pet, res) {
 
     var offset = pet.query.offset !== undefined && !isNaN(pet.query.offset) && parseInt(pet.query.offset) >= 0 ? parseInt(pet.query.offset) : 0; // Por defecto el offset sera 0
@@ -132,7 +132,7 @@ app.get('/tableros', function(pet, res) {
     });
 })
 
-//get de un recurso sabiendo su id
+//get de un recurso sabiendo su id FUTURO-CHECK
 app.get('/tableros/:id', function(pet,res){
 
     var id = parseInt(pet.params.id)
@@ -163,7 +163,7 @@ app.get('/tableros/:id', function(pet,res){
 })
 
 
-//get las columnas de un tablero
+//get las columnas de un tablero FUTURO-CHECK
 app.get('/tableros/:id/columnas', function(pet,res){
 
     var idtablero = parseInt(pet.params.id)
@@ -203,7 +203,7 @@ app.get('/tableros/:id/columnas', function(pet,res){
     
 })
 
-//post
+//post crear un tablero CHECK
 app.post('/tableros', chequeaJWT, function(pet, resp){
 
     var token = getTokenFromAuthHeader(pet)
@@ -232,7 +232,7 @@ app.post('/tableros', chequeaJWT, function(pet, resp){
     });
 })
 
-//delete un tablero
+//delete un tablero CHECK
 app.delete('/tableros/:id', chequeaJWT, function(pet,res){
     var id = parseInt(pet.params.id)
     
@@ -286,8 +286,7 @@ app.delete('/tableros/:id', chequeaJWT, function(pet,res){
 
 })
 
-
-// get de columnas de un tablero
+// get de columnas de un tablero FUTURO-CHECK
 app.get('/tableros/:id/columnas', function(pet, res) {
     
     var id = parseInt(pet.params.id)
@@ -316,7 +315,7 @@ app.get('/tableros/:id/columnas', function(pet, res) {
     }
 })
 
-//get de una columna sabiendo su id
+//get de una columna sabiendo su id FUTURO-CHECK
 app.get('/tableros/:idtablero/columnas/:idcolumna', function(pet,res){
 
     var idtablero = parseInt(pet.params.idtablero)
@@ -346,7 +345,7 @@ app.get('/tableros/:idtablero/columnas/:idcolumna', function(pet,res){
     }
 })
 
-//get de tarjetas de una columna
+//get de tarjetas de una columna FUTURO-CHECK
 
 app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet, res) {
         
@@ -378,7 +377,7 @@ app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet, res) 
         }
 })
 
-//get de una tarjeta sabiendo su id
+//get de una tarjeta sabiendo su id FUTURO-CHECK
 app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function(pet,res){
 
     var idtablero = parseInt(pet.params.idtablero)
@@ -411,7 +410,7 @@ app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function
 
 })
 
-//get las tarjetas de una columna
+//get las tarjetas de una columna FUTURO-CHECK
 app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res){
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
@@ -448,15 +447,20 @@ app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res){
     }
 })
 
-// update de una tarjeta
+// update de una tarjeta CHECK
 
-app.put('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function(pet,res){ // TODO comprobar que esta logueado
+app.put('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', chequeaJWT, function(pet,res){ 
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
     var idtarjeta = parseInt(pet.params.idtarjeta)
     var nombre = pet.body.nombre
     var descripcion = pet.body.descripcion
     var fechaVencimiento = pet.body.fechaVencimiento
+
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
+
 
     if (isNaN(idcolumna) || isNaN(idtablero) || isNaN(idtarjeta)){
         res.status(400)
@@ -466,12 +470,30 @@ app.put('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function
 
     else{
         
-        let sql = `SELECT id, columna_id
-            FROM tarjetas
-            WHERE id = ? and columna_id = ?`;
+        //primero comprobamos que el tablero le pertenece al usuario 
+        let sql1 = `SELECT * FROM tableros WHERE id = ?`;
+        db.get(sql1, [idtablero], (err, row) => {
+            if (err || row == null) {
+                console.log(err)
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:404, mensaje:"El tablero no existe"})
+            }
+            else{
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos para modificar este tablero"})
+                }
+                else{
+                //buscamos la tarjeta
 
-        db.get(sql, [idtarjeta, idcolumna], (err, row) => {
-            console.log(sql);
+                let sql = `SELECT id, columna_id
+                FROM tarjetas
+                WHERE id = ? and columna_id = ?`;
+
+            db.get(sql, [idtarjeta, idcolumna], (err, row) => {
+                console.log(sql);
 
             if (err || row == null) {
                 res.status(404) 
@@ -498,18 +520,28 @@ app.put('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function
                     })
                 }
                 });
-            }   
-        });
+            } 
+            })
+
+  
+            }
+        }
+    });
     }
 })
 
-//patch: cambiar tarjeta de columna 
-app.patch('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function(pet,res){ // TODO comprobar que esta logueado
+//patch: cambiar tarjeta de columna CHECK
+app.patch('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', chequeaJWT, function(pet,res){ 
     //comprobar que la columna nueva exista 
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
     var idtarjeta = parseInt(pet.params.idtarjeta)
     var columnanueva = pet.body.columna
+
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
+
 
     if (isNaN(idcolumna) || isNaN(idtablero) || isNaN(idtarjeta) || isNaN(columnanueva)){
         res.status(400)
@@ -518,45 +550,65 @@ app.patch('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', functi
     }
 
     else{
-        
-        let sql = `SELECT id, columna_id
-            FROM tarjetas
-            WHERE id = ? and columna_id = ?`;
 
-        db.get(sql, [idtarjeta, idcolumna], (err, row) => {
-            console.log(sql);
-
+        //primero comprobamos que el tablero le pertenece al usuario
+        let sql1 = `SELECT * FROM tableros WHERE id = ?`;
+        db.get(sql1, [idtablero], (err, row) => {
             if (err || row == null) {
-                res.status(404) 
-                res.header('Access-Control-Allow-Origin', "*") 
-                res.send({cod:404, mensaje:"El item no existe"})
+                console.log(err)
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:404, mensaje:"El tablero no existe"})
             }
             else{
-                let sql2 = `UPDATE tarjetas SET columna_id = ? WHERE id = ?`;
-                console.log(sql2);
-                
-                db.run(sql2, [columnanueva, idtarjeta], (err, row) => {
-                console.log(row);
-                if (err) {
-                    res.status(500)  
+                if (row.user_id != payload.id){
+                    res.status(403)
                     res.header('Access-Control-Allow-Origin', "*")
-                    res.send({cod:404, mensaje:"No se ha podido actualizar"})
+                    res.send({cod:403, mensaje:"No tienes permisos para modificar este tablero"})
                 }
                 else{
-                    //hago select del recurso actualizado para poder devolverlo
-                    let sql = `SELECT * FROM tarjetas WHERE id = ? and columna_id = ?`;
-                    db.get(sql, [idtarjeta, columnanueva], (err, row) => {
-                        res.header('Access-Control-Allow-Origin', "*")
-                        res.send({tarjeta: row})
-                    })
-                }
+                    //buscamos la tarjeta
+                    let sql = `SELECT id, columna_id
+                        FROM tarjetas
+                        WHERE id = ? and columna_id = ?`;
+
+                    db.get(sql, [idtarjeta, idcolumna], (err, row) => {
+                    console.log(sql);
+
+                    if (err || row == null) {
+                        res.status(404) 
+                        res.header('Access-Control-Allow-Origin', "*") 
+                        res.send({cod:404, mensaje:"El item no existe"})
+                    }
+                    else{
+                        let sql2 = `UPDATE tarjetas SET columna_id = ? WHERE id = ?`;
+                        console.log(sql2);
+                        
+                        db.run(sql2, [columnanueva, idtarjeta], (err, row) => {
+                        console.log(row);
+                        if (err) {
+                            res.status(500)  
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({cod:404, mensaje:"No se ha podido actualizar"})
+                        }
+                        else{
+                            //hago select del recurso actualizado para poder devolverlo
+                            let sql = `SELECT * FROM tarjetas WHERE id = ? and columna_id = ?`;
+                            db.get(sql, [idtarjeta, columnanueva], (err, row) => {
+                                res.header('Access-Control-Allow-Origin', "*")
+                                res.send({tarjeta: row})
+                            })
+                        }
+                        });
+                    }   
                 });
-            }   
+                }
+            }
         });
     }
 })
 
-//put: editar tablero
+//put: editar tablero CHECK
 app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
 
     var token = getTokenFromAuthHeader(pet)
@@ -622,11 +674,14 @@ app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
     }
 })
 
-// Post nueva tarjeta en columna
-app.post('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res) { // TODO comprobar que esta logueado
+// Post nueva tarjeta en columna CHECK
+app.post('/tableros/:idtablero/columnas/:idcolumna/tarjetas', chequeaJWT, function(pet,res) { 
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
     var nombre = pet.body.nombre
+
+    var token = getTokenFromAuthHeader(pet)
+    payload = jwt.decode(token, secret)
 
     if (isNaN(idcolumna) || isNaN(idtablero) || nombre == null) {
         res.status(400)
@@ -634,53 +689,78 @@ app.post('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res) 
         res.send({cod:400, mensaje:"El item no es un numero"})
     }
     else { 
-        let sql = `SELECT id
-            FROM columnas
-            WHERE id = ? and tablero_id = ?`;
 
-        db.get(sql, [idcolumna, idtablero], (err, row) => {
+        //primero comprobamos que el tablero le pertenece al usuario
+        let sql1 = `SELECT *
+            FROM tableros
+            WHERE id = ?`;
+
+        db.get(sql1, [idtablero], (err, row) => {
             if (err || row == null) {
-                res.status(404)
-                res.header('Access-Control-Allow-Origin', "*")  
-                res.send({cod:404, mensaje:"El item no existe"})
+                res.status(404)  
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:404, mensaje:"El tablero no existe"})
             }
-            else {
-                let sql2 = `INSERT INTO tarjetas (nombre, columna_id, descripcion, fechaVencimiento) VALUES (?, ?, ?, ?)`;
-                const today = new Date();
-                const yyyy = today.getFullYear();
-                let mm = today.getMonth() + 1; // Months start at 0!
-                let dd = today.getDate();
 
-                if (dd < 10) dd = '0' + dd;
-                if (mm < 10) mm = '0' + mm;
+            //comprobamos que el tablero le pertenece 
+            else if (row.user_id !== payload.id){
+                res.status(403)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:403, mensaje:"No tienes permisos para editar este tablero"})
+            }
+            else{
+                //el tablero existe y le pertenece
+                let sql = `SELECT id
+                FROM columnas
+                WHERE id = ? and tablero_id = ?`;
 
-                const todayFormat = dd + '-' + mm + '-' + yyyy;
--
-                db.run(sql2, [nombre, idcolumna, '', todayFormat], function(err, row) {
-                    if (err) {
-                        console.log(err)
-                        res.status(500)
-                        res.header('Access-Control-Allow-Origin', "*")
-                        res.send({cod:500, mensaje:"No se ha podido insertar"})
-                    }
-                    else {
-                        let sql3 = `SELECT * FROM tarjetas WHERE id = ?`;
-                        db.get(sql3, [this.lastID], (err, row) => {
+            db.get(sql, [idcolumna, idtablero], (err, row) => {
+                if (err || row == null) {
+                    res.status(404)
+                    res.header('Access-Control-Allow-Origin', "*")  
+                    res.send({cod:404, mensaje:"El item no existe"})
+                }
+                else {
+                    let sql2 = `INSERT INTO tarjetas (nombre, columna_id, descripcion, fechaVencimiento) VALUES (?, ?, ?, ?)`;
+                    const today = new Date();
+                    const yyyy = today.getFullYear();
+                    let mm = today.getMonth() + 1; // Months start at 0!
+                    let dd = today.getDate();
+
+                    if (dd < 10) dd = '0' + dd;
+                    if (mm < 10) mm = '0' + mm;
+
+                    const todayFormat = dd + '-' + mm + '-' + yyyy;
+                    db.run(sql2, [nombre, idcolumna, '', todayFormat], function(err, row) {
+                        if (err) {
+                            console.log(err)
+                            res.status(500)
                             res.header('Access-Control-Allow-Origin', "*")
-                            res.send({tarjeta: row})
-                        })
-                    }
-                });
+                            res.send({cod:500, mensaje:"No se ha podido insertar"})
+                        }
+                        else {
+                            let sql3 = `SELECT * FROM tarjetas WHERE id = ?`;
+                            db.get(sql3, [this.lastID], (err, row) => {
+                                res.header('Access-Control-Allow-Origin', "*")
+                                res.send({tarjeta: row})
+                            })
+                        }
+                    });
+                }
+            })
             }
         });
     }
 })
 
-// Post nueva columna en tablero
+// Post nueva columna en tablero CHECK
 
-app.post('/tableros/:idtablero/columnas', function(pet,res) { // TODO comprobar que esta logueado
+app.post('/tableros/:idtablero/columnas', chequeaJWT, function(pet,res) { 
     var idtablero = parseInt(pet.params.idtablero)
     var titulo = pet.body.titulo
+
+    var token = getTokenFromAuthHeader(pet)
+    payload = jwt.decode(token, secret)
 
     if (isNaN(idtablero) || titulo == null) {
         res.status(400)
@@ -688,40 +768,63 @@ app.post('/tableros/:idtablero/columnas', function(pet,res) { // TODO comprobar 
         res.send({cod:400, mensaje:"El item no es un numero"})
     }
     else {
-        let sql = `SELECT id
+
+        //primero comprobamos que el tablero le pertenece al usuario
+        let sql1 = `SELECT *
             FROM tableros
             WHERE id = ?`;
 
-        db.get(sql, [idtablero], (err, row) => {
+        db.get(sql1, [idtablero], (err, row) => {
             if (err || row == null) {
                 res.status(404)
                 res.header('Access-Control-Allow-Origin', "*")
-                res.send({cod:404, mensaje:"El item no existe"})
+                res.send({cod:404, mensaje:"El tablero no existe"})
             }
-            else {
-                let sql2 = `INSERT INTO columnas (titulo, tablero_id) VALUES (?, ?)`;
-                db.run(sql2, [titulo, idtablero], function(err, row) {
-                    if (err) {
-                        console.log(err)
-                        res.status(500)
+            //comprobamos que el tablero le pertenece 
+            else if (row.user_id !== payload.id){
+                res.status(403)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:403, mensaje:"No tienes permisos para editar este tablero"})
+            }
+            else{
+                //el tablero existe y le pertenece
+                let sql = `SELECT id
+                FROM tableros
+                WHERE id = ?`;
+
+                db.get(sql, [idtablero], (err, row) => {
+                    if (err || row == null) {
+                        res.status(404)
                         res.header('Access-Control-Allow-Origin', "*")
-                        res.send({cod:500, mensaje:"No se ha podido insertar"})
+                        res.send({cod:404, mensaje:"El item no existe"})
                     }
                     else {
-                        let sql3 = `SELECT * FROM columnas WHERE id = ?`;
-                        db.get(sql3, [this.lastID], (err, row) => {
-                            res.header('Access-Control-Allow-Origin', "*")
-                            res.send({columna: row})
-                        })
+                        let sql2 = `INSERT INTO columnas (titulo, tablero_id) VALUES (?, ?)`;
+                        db.run(sql2, [titulo, idtablero], function(err, row) {
+                            if (err) {
+                                console.log(err)
+                                res.status(500)
+                                res.header('Access-Control-Allow-Origin', "*")
+                                res.send({cod:500, mensaje:"No se ha podido insertar"})
+                            }
+                            else {
+                                let sql3 = `SELECT * FROM columnas WHERE id = ?`;
+                                db.get(sql3, [this.lastID], (err, row) => {
+                                    res.header('Access-Control-Allow-Origin', "*")
+                                    res.send({columna: row})
+                                })
+                            }
+                        });
                     }
                 });
             }
-        });
+        })
+        
     }
 })
 
-// Delete columna
-app.delete('/tableros/:idtablero/columnas/:idcolumna', function(pet,res) { 
+// Delete columna CHECK
+app.delete('/tableros/:idtablero/columnas/:idcolumna', chequeaJWT, function(pet,res) { 
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
 
@@ -746,13 +849,11 @@ app.delete('/tableros/:idtablero/columnas/:idcolumna', function(pet,res) {
             if (err || row == null) {
                 res.status(404)
                 res.header('Access-Control-Allow-Origin', "*")
-                console.log("El tablero no existe")
                 res.send({cod:404, mensaje:"El tablero no existe"})
             }
             else if (row.user_id != payload.id) {
                 res.status(403)
                 res.header('Access-Control-Allow-Origin', "*")
-                console.log("No tienes permisos para modificar este tablero")
                 res.send({cod:403, mensaje:"No tienes permisos para modificar este tablero"})
             }
             else {
@@ -793,7 +894,6 @@ app.delete('/tableros/:idtablero/columnas/:idcolumna', function(pet,res) {
         });
     }
 })
-
 
 // Post registro nuevo usuario
 app.post('/usuarios/', function(pet,res) { 
