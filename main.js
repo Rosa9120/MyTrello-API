@@ -104,7 +104,7 @@ app.get('/tableros', function(pet, res) {
     var offset = pet.query.offset !== undefined && !isNaN(pet.query.offset) && parseInt(pet.query.offset) >= 0 ? parseInt(pet.query.offset) : 0; // Por defecto el offset sera 0
     var limit = pet.query.limit !== undefined && !isNaN(pet.query.limit) && parseInt(pet.query.limit) >= 0 ? parseInt(pet.query.limit) : 10; // Por defecto el limite sera 10
 
-    let sql = `SELECT id, nombre, user_id
+    let sql = `SELECT id, nombre, user_id, descripcion
     FROM tableros LIMIT ? OFFSET ?`;
 
     let sqlCount = `SELECT id
@@ -143,7 +143,7 @@ app.get('/tableros/:id', function(pet,res){
         res.send({cod:400, mensaje:"El item no es un numero"})
     }
     else{
-        let sql = `SELECT id, nombre, user_id
+        let sql = `SELECT id, nombre, user_id, descripcion
            FROM tableros
            WHERE id  = ?`;
 
@@ -210,11 +210,11 @@ app.post('/tableros', chequeaJWT, function(pet, resp){
     
     payload = jwt.decode(token, secret)
 
-    paramString = "null, '" + pet.body.nombre + "', " + payload.id;
+    paramString = "null, '" + pet.body.nombre + "', " + payload.id + ", '" + pet.body.descripcion + "'";
 
     //creadoPor = payload.login
 
-    let sql = 'INSERT into tableros (id, nombre, user_id) VALUES (' + paramString + ')';
+    let sql = 'INSERT into tableros (id, nombre, user_id, descripcion) VALUES (' + paramString + ')';
 
     db.run(sql, function(err) {
         console.log(this)
@@ -236,6 +236,9 @@ app.post('/tableros', chequeaJWT, function(pet, resp){
 app.delete('/tableros/:id', chequeaJWT, function(pet,res){
     var id = parseInt(pet.params.id)
     
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
 
     if (isNaN(id)){
         res.status(400)
@@ -249,24 +252,34 @@ app.delete('/tableros/:id', chequeaJWT, function(pet,res){
             WHERE id  = ?`;
 
         db.get(sql, [id], (err, row) => {
-            if (err || row == null) {
+            if (err || row == null) {       //comprobamos que existe el tablero
                 res.status(404)  
                 res.header('Access-Control-Allow-Origin', "*")
                 res.send({cod:404, mensaje:"El item no existe"})
             }
             else {
-                let sql2 = `DELETE FROM tableros WHERE id = ?`;
-                db.run(sql2, [id], (err, row) => {
-                    if (err) {
-                        res.status(500)  
-                        res.header('Access-Control-Allow-Origin', "*")
-                        res.send({cod:404, mensaje:"No se ha podido borrar"})
-                    }
-                    else {
-                        res.header('Access-Control-Allow-Origin', "*")
-                        res.send({tablero: row})
-                    }
-                });
+
+                //comprobamos que el usaurio logeado es el dueño del tablero
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos para borrar este tablero"})
+                }
+                else{
+                    let sql2 = `DELETE FROM tableros WHERE id = ?`;
+                    db.run(sql2, [id], (err, row) => {
+                        if (err) {
+                            res.status(500)  
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({cod:404, mensaje:"No se ha podido borrar"})
+                        }
+                        else {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({tablero: row})
+                        }
+                    });
+                }
+                
             }
         });
     }
@@ -543,8 +556,12 @@ app.patch('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', functi
     }
 })
 
-//put: cambiar nombre del tablero
+//put: editar tablero
 app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
+
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
 
     var idtablero = parseInt(pet.params.idtablero)
 
@@ -572,16 +589,25 @@ app.put('/tableros/:idtablero', chequeaJWT, function(pet,res){
                 res.header('Access-Control-Allow-Origin', "*")
                 res.send({cod:404, mensaje:"El tablero no existe"})
             }
+
+            //comprobamos que el tablero le pertenece 
+            else if (row.user_id !== payload.id){
+                res.status(403)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:403, mensaje:"No tienes permisos para editar este tablero"})
+            }
+
             else {
-                
-                let sql2 = `UPDATE tableros SET nombre = ?, user_id = ? WHERE id = ?`;
-                db.run(sql2, [pet.body.nombre !== undefined ? pet.body.nombre : row.nombre, pet.body.user_id !== undefined ? pet.body.user_id : row.user_id, idtablero], (err, row) => {
+                let sql2 = `UPDATE tableros SET nombre = ?, descripcion = ? WHERE id = ?`;
+                db.run(sql2, [pet.body.nombre !== undefined ? pet.body.nombre : row.nombre, pet.body.descripcion !== undefined ? pet.body.descripcion : row.descripcion, idtablero], (err, row) => {
                 if (err) {
+                    console.log(err)
                     res.status(500)  
                     res.header('Access-Control-Allow-Origin', "*")
                     res.send({cod:500, mensaje:"No se ha podido actualizar"})
                 }
                 else{
+                    console.log("correcto")
                     //hago select del recurso actualizado para poder devolverlo
                     let sql = `SELECT * FROM tableros WHERE id = ?`;
                     db.get(sql, [idtablero], (err, row) => {
