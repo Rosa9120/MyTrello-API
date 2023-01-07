@@ -232,7 +232,7 @@ app.post('/tableros', chequeaJWT, function(pet, resp){
     });
 })
 
-//delete
+//delete un tablero
 app.delete('/tableros/:id', chequeaJWT, function(pet,res){
     var id = parseInt(pet.params.id)
     
@@ -720,8 +720,82 @@ app.post('/tableros/:idtablero/columnas', function(pet,res) { // TODO comprobar 
     }
 })
 
-// Post registro nuevo usuario
+// Delete columna
+app.delete('/tableros/:idtablero/columnas/:idcolumna', function(pet,res) { 
+    var idtablero = parseInt(pet.params.idtablero)
+    var idcolumna = parseInt(pet.params.idcolumna)
 
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
+
+
+    if (isNaN(idcolumna) || isNaN(idtablero)) {
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"El item no es un numero"})
+    }
+    else {
+        
+        //primero, comprobar que el usuario es el propietario del tablero
+        let sql1 = `SELECT *
+            FROM tableros
+            WHERE id = ?`;
+
+        db.get(sql1, [idtablero], (err, row) => {
+            if (err || row == null) {
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
+                console.log("El tablero no existe")
+                res.send({cod:404, mensaje:"El tablero no existe"})
+            }
+            else if (row.user_id != payload.id) {
+                res.status(403)
+                res.header('Access-Control-Allow-Origin', "*")
+                console.log("No tienes permisos para modificar este tablero")
+                res.send({cod:403, mensaje:"No tienes permisos para modificar este tablero"})
+            }
+            else {
+                //comprobar que la columna pertenece al tablero
+           
+                let sql = `SELECT id
+                    FROM columnas
+                    WHERE id = ? and tablero_id = ?`;
+                
+                db.get(sql, [idcolumna, idtablero], (err, row) => {
+                    if (err || row == null) {
+                        res.status(404)
+                        res.header('Access-Control-Allow-Origin', "*")
+                        console.log("La columna no existe")
+                        res.send({cod:404, mensaje:"El item no existe"})
+                    }
+                    else {
+                        let sql2 = `DELETE FROM columnas WHERE id = ?`;
+                        db.run(sql2, [idcolumna], function(err, row) {
+                            if (err) {
+                                console.log(err)
+                                res.status(500)
+                                res.header('Access-Control-Allow-Origin', "*")
+                                console.log("No se ha podido borrar")
+                                res.send({cod:500, mensaje:"No se ha podido borrar"})
+                            }
+                            else {
+                                res.header('Access-Control-Allow-Origin', "*")
+                                console.log("Borrado")
+                                res.send({cod:200, mensaje:"Borrado"})
+                            }
+                        });
+                    }
+
+                });
+
+            }
+        });
+    }
+})
+
+
+// Post registro nuevo usuario
 app.post('/usuarios/', function(pet,res) { 
    
     paramString = "null, '" + pet.body.nombre + "', '" + pet.body.email + "', '" + pet.body.password + "'";
