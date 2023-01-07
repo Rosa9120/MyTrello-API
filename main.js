@@ -48,12 +48,13 @@ app.post('/login', function(pet, resp){
             user = user[0]
             var payload = {
                 id: user.id,
-                login: user.email,
+                email: user.email,
+                name: user.name,
                 exp: moment().add(7, 'days').valueOf()
             }
             token = jwt.encode(payload, secret)
             resp.header('Access-Control-Allow-Origin', "*")
-            resp.send({token: token, mensaje:"OK"})
+            resp.send({token: token, mensaje:"OK", user:{id:user.id, name:user.name, email:user.email}})
         } else {
             resp.status(403)
             resp.header('Access-Control-Allow-Origin', "*")
