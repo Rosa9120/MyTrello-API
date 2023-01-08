@@ -1,0 +1,42 @@
+Práctica 4 hecha por Ilya Slyusarchuk y Rosa María Rodríguez
+Se trata de una aplicación web que permite crear tableros de tareas, con columnas y tarjetas. Las tarjetas se pueden mover de columna arrastrando y soltando. La gestión de las tarjetas se hace dando click en los tres puntos al lado de su titulo.
+Se usan cinco vistas: LoginView, RegisterView, TableroView, HomeView y AboutView.
+También hacemos uso de cinco componentes: Columna, ColumnaVacia, Navbar, Tarjeta y TarjetaVacia. 
+Cambios introducidos en el servidor:
+- Método para ver las columnas de un tablero
+- Método para ver las tarjetas de una columna
+- Método para añadir una tarjeta a una columna
+- Método para añadir una columna al tablero
+- Método para borrar columna
+- Método para borrar tarjeta
+- Método para editar tablero
+- Método para editar tarjeta
+- Campo 'descripción' para el tablero
+- Autenticación con token JWT en todos los métodos POST, PUT Y PATCH
+- Comprobación en esos métodos de que el tablero accedido le pertenece al usuario
+- Método para obtener todos los tableros de un usuario
+- Método para el registro de usuarios
+- Modificación para poder usar cors
+
+Requisitos mínimos:
+- Hemos implementado login/logout
+- Listado de items: listamos todos los tableros del usuario. También se podrían considerar como listados las columnas y las tarjetas de esos tableros.
+- Eliminación de items: se pueden borrar los tableros, las columnas y las tarjetas. Como en tableros y tarjetas usamos un modal, hemos añadido una X para borrar las columnas y así que sea similar al ejemplo de la lista de la compra.
+- Creación de items: se pueden crear tableros, columnas y tarjetas.
+- Ver detalles: al hacer click en los tres puntos al lado de cada tarjeta, se pueden ver sus detalles y editarlos.
+- Edición de items: se pueden editar los tableros y las tarjetas.
+- Validación del formulario de registro y en creación/edición de tableros y tarjetas.
+
+Requisitos adicionales:
+- Usamos la estructura de proyecto que genera create-vue 
+- Búsqueda y paginación de tableros
+- No solo el tablero, sino también las tarjetas, permiten ver detalles, editar y eliminar.
+- Como framework de componentes visuales usamos bootstrap-vue.
+- Gestión del estado con Pinia para mantener la información del usuario autentificado
+- Uso de Vue Router
+
+Otros detalles:
+- Una documentación más extensa de la API la puedes encontrar en server/Entrega4ADI.pdf
+- Cada componente y cada vista del cliente de Vue está documentado en el código
+
+
