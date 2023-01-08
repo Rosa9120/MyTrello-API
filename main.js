@@ -137,7 +137,7 @@ app.get('/tableros', chequeaJWT, function(pet, res) {
     });
 })
 
-//get de un recurso sabiendo su id FUTURO-CHECK
+//get de un recurso sabiendo su id CHECK
 app.get('/tableros/:id', chequeaJWT, function(pet,res){
 
     var id = parseInt(pet.params.id)
@@ -196,41 +196,70 @@ app.get('/tableros/:id', chequeaJWT, function(pet,res){
 })
 
 
-//get las columnas de un tablero FUTURO-CHECK
-app.get('/tableros/:id/columnas', function(pet,res){
+//get las columnas de un tablero CHECK
+app.get('/tableros/:id/columnas', chequeaJWT, function(pet,res){
 
     var idtablero = parseInt(pet.params.id)
     
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
+
     if (isNaN(idtablero)){
         res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
         res.send({cod:400, mensaje:"El item no es un numero"})
     }
     else{
 
-        let sql = `SELECT id, nombre, user_id
+        //comprobamos si el tablero le pertenece
+        let sqlComprobar = `SELECT id, nombre, user_id, descripcion
         FROM tableros
-        WHERE id  = ?`
+        WHERE id  = ?`;
 
-        db.get(sql, idtablero, (err, row) => {
-        if (err || row == null) {
-            res.status(404)  
-            res.send({cod:404, mensaje:"El tablero no existe"})
-        }
-        else{
-
-            let sql2 = `SELECT id, titulo
-            FROM columnas WHERE
-            tablero_id = ?`;
-            db.all(sql2, idtablero, (err, rows) => {
-                if (err || rows == null) {
-                    res.status(404)  
-                    res.send({cod:404, mensaje:"El tablero no tiene columnas"})
+        db.get(sqlComprobar, [idtablero], (err, row) => {
+            if (err || row == null) {
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:404, mensaje:"El item no existe"})
+            }
+            else {
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos"})
                 }
                 else{
-                    res.send({columnas: Array.from(rows.values())})
+                    //el tablero existe y le pertenece
+
+                    let sql = `SELECT id, nombre, user_id
+                    FROM tableros
+                    WHERE id  = ?`
+
+                    db.get(sql, idtablero, (err, row) => {
+                        if (err || row == null) {
+                            res.status(404)  
+                            res.send({cod:404, mensaje:"El tablero no existe"})
+                        }
+                        else{
+
+                            let sql2 = `SELECT id, titulo
+                            FROM columnas WHERE
+                            tablero_id = ?`;
+                            db.all(sql2, idtablero, (err, rows) => {
+                                if (err || rows == null) {
+                                    res.status(404)  
+                                    res.send({cod:404, mensaje:"El tablero no tiene columnas"})
+                                }
+                                else{
+                                    res.send({columnas: Array.from(rows.values())})
+                                }
+                            })
+                        }
+                    })
+
                 }
-            })
-        }
+            }
         });
     }
     
@@ -319,10 +348,14 @@ app.delete('/tableros/:id', chequeaJWT, function(pet,res){
 
 })
 
-// get de columnas de un tablero FUTURO-CHECK
-app.get('/tableros/:id/columnas', function(pet, res) {
+// get de columnas de un tablero CHECK
+app.get('/tableros/:id/columnas', chequeaJWT, function(pet, res) {
     
     var id = parseInt(pet.params.id)
+
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
     
     if (isNaN(id)){
         res.status(400)
@@ -330,154 +363,291 @@ app.get('/tableros/:id/columnas', function(pet, res) {
         res.send({cod:400, mensaje:"El id no es un numero"})
     }
     else{
-        let sql = `SELECT id, titulo
-        FROM columnas
-        WHERE tablero_id = ?`;
 
-        db.all(sql, [id], (err, rows) => { 
-            if (err || rows == null) {
-                res.status(404)  
+        //comprobamos que el tablero le pertenece 
+        let sql1 = `SELECT id, nombre, user_id
+        FROM tableros
+        WHERE id  = ?`;
+
+        db.get(sql1, [id], (err, row) => {
+            if (err || row == null) {       //comprobamos que existe el tablero
+                res.status(404)
                 res.header('Access-Control-Allow-Origin', "*")
                 res.send({cod:404, mensaje:"El item no existe"})
             }
             else {
-                res.header('Access-Control-Allow-Origin', "*")
-                res.send({columnas: rows})
+                //comprobamos que el usaurio logeado es el dueño del tablero
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos para ver este tablero"})
+                }
+                else{
+                    //si todo va bien, devolvemos las columnas
+
+                    let sql = `SELECT id, titulo
+                    FROM columnas
+                    WHERE tablero_id = ?`;
+
+                    db.all(sql, [id], (err, rows) => { 
+                        if (err || rows == null) {
+                            res.status(404)  
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({cod:404, mensaje:"El item no existe"})
+                        }
+                        else {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({columnas: rows})
+                        }
+                    });
+                }
             }
         });
     }
 })
 
-//get de una columna sabiendo su id FUTURO-CHECK
-app.get('/tableros/:idtablero/columnas/:idcolumna', function(pet,res){
+//get de una columna sabiendo su id CHECK
+app.get('/tableros/:idtablero/columnas/:idcolumna', chequeaJWT, function(pet,res){
 
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
     
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
+
     if (isNaN(idcolumna) || isNaN(idtablero)){
         res.status(400)
         res.header('Access-Control-Allow-Origin', "*")
         res.send({cod:400, mensaje:"El id no es un numero"})
     }
     else {
-        let sql = `SELECT id, titulo
-           FROM columnas
-           WHERE id  = ? and tablero_id = ?`;
 
-        db.get(sql, [idcolumna, idtablero], (err, row) => {
-            if (err || row == null) {
-                res.status(404)  
+        //comprobamos que el tablero le pertenece
+        let sql1 = `SELECT id, nombre, user_id
+        FROM tableros
+        WHERE id  = ?`;
+
+        db.get(sql1, [idtablero], (err, row) => {
+            if (err || row == null) {       //comprobamos que existe el tablero
+                res.status(404)
                 res.header('Access-Control-Allow-Origin', "*")
-                res.send({cod:404, mensaje:"La columna no existe"})
+                res.send({cod:404, mensaje:"El item no existe"})
             }
             else {
+                //comprobamos que el usaurio logeado es el dueño del tablero
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos para ver este tablero"})
+                }
+                else{
+                    //si todo va bien, devolvemos la columna
+
+                    let sql = `SELECT id, titulo
+                    FROM columnas
+                    WHERE id  = ? and tablero_id = ?`;
+
+                    db.get(sql, [idcolumna, idtablero], (err, row) => {
+                        if (err || row == null) {
+                            res.status(404)  
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({cod:404, mensaje:"La columna no existe"})
+                        }
+                        else {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({columna: row})
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+})
+
+//get de tarjetas de una columna CHECK
+
+app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', chequeaJWT, function(pet, res) {
+        
+    var idtablero = parseInt(pet.params.idtablero)
+    var idcolumna = parseInt(pet.params.idcolumna)
+
+    var token = getTokenFromAuthHeader(pet)
+    payload = jwt.decode(token, secret)
+    
+    if (isNaN(idcolumna) || isNaN(idtablero)){
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"El id no es un numero"})
+    }
+    else{
+
+        //comprobamos que el tablero le pertenece
+        let sql1 = `SELECT id, nombre, user_id
+        FROM tableros
+        WHERE id  = ?`;
+
+        db.get(sql1, [idtablero], (err, row) => {
+            if (err || row == null) {       //comprobamos que existe el tablero
+                res.status(404)
                 res.header('Access-Control-Allow-Origin', "*")
-                res.send({columna: row})
+                res.send({cod:404, mensaje:"El item no existe"})
+            }
+            else {
+                //comprobamos que el usaurio logeado es el dueño del tablero
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos para ver este tablero"})
+                }
+                else{
+                    //si todo va bien, devolvemos las tarjetas
+
+                    let sql = `SELECT id, nombre, descripcion, columna_id, fechaVencimiento
+                    FROM tarjetas
+                    WHERE columna_id = ?`;
+
+                    db.all(sql, [idcolumna], (err, rows) => {
+                        if (err || rows == null) {
+                            res.status(404)  
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({cod:404, mensaje:"El item no existe"})
+                        }
+                        else {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({tarjetas: rows})
+                        }
+                    }
+                    );
+                }
             }
         });
     }
 })
 
-//get de tarjetas de una columna FUTURO-CHECK
-
-app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet, res) {
-        
-        var idtablero = parseInt(pet.params.idtablero)
-        var idcolumna = parseInt(pet.params.idcolumna)
-        
-        if (isNaN(idcolumna) || isNaN(idtablero)){
-            res.status(400)
-            res.header('Access-Control-Allow-Origin', "*")
-            res.send({cod:400, mensaje:"El id no es un numero"})
-        }
-        else{
-            let sql = `SELECT id, nombre, descripcion, columna_id, fechaVencimiento
-            FROM tarjetas
-            WHERE columna_id = ?`;
-    
-            db.all(sql, [idcolumna], (err, rows) => {
-                if (err || rows == null) {
-                    res.status(404)  
-                    res.header('Access-Control-Allow-Origin', "*")
-                    res.send({cod:404, mensaje:"El item no existe"})
-                }
-                else {
-                    res.header('Access-Control-Allow-Origin', "*")
-                    res.send({tarjetas: rows})
-                }
-            }
-            );
-        }
-})
-
-//get de una tarjeta sabiendo su id FUTURO-CHECK
-app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', function(pet,res){
+//get de una tarjeta sabiendo su id CHECK
+app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', chequeaJWT, function(pet,res){
 
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
     var idtarjeta = parseInt(pet.params.idtarjeta)
 
-    
+    var token = getTokenFromAuthHeader(pet)
+    payload = jwt.decode(token, secret)
+
     if (isNaN(idcolumna) || isNaN(idtablero) || isNaN(idtarjeta)){
         res.status(400)
         res.header('Access-Control-Allow-Origin', "*")
         res.send({cod:400, mensaje:"El id no es un numero"})
     }
     else {
-        let sql = `SELECT *
-           FROM tarjetas
-           WHERE id  = ? and columna_id = ?`;
 
-        db.get(sql, [idtarjeta, idcolumna], (err, row) => {
-            if (err || row == null) {
-                res.status(404)  
+        //comprobamos que el tablero le pertenece
+        let sql1 = `SELECT id, nombre, user_id
+        FROM tableros
+        WHERE id  = ?`;
+
+        db.get(sql1, [idtablero], (err, row) => {
+            if (err || row == null) {       //comprobamos que existe el tablero
+                res.status(404)
                 res.header('Access-Control-Allow-Origin', "*")
-                res.send({cod:404, mensaje:"La tarjeta no existe"})
+                res.send({cod:404, mensaje:"El item no existe"})
             }
             else {
-                res.header('Access-Control-Allow-Origin', "*")
-                res.send({columna: row})
+                //comprobamos que el usaurio logeado es el dueño del tablero
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos para ver este tablero"})
+                }
+                else{
+                    //si todo va bien, devolvemos la tarjeta
+                    let sql = `SELECT *
+                    FROM tarjetas
+                    WHERE id  = ? and columna_id = ?`;
+
+                    db.get(sql, [idtarjeta, idcolumna], (err, row) => {
+                        if (err || row == null) {
+                            res.status(404)  
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({cod:404, mensaje:"La tarjeta no existe"})
+                        }
+                        else {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({columna: row})
+                        }
+                    });
+                }
             }
         });
     }
 
 })
 
-//get las tarjetas de una columna FUTURO-CHECK
-app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', function(pet,res){
+//get las tarjetas de una columna CHECK
+app.get('/tableros/:idtablero/columnas/:idcolumna/tarjetas', chequeaJWT, function(pet,res){
     var idtablero = parseInt(pet.params.idtablero)
     var idcolumna = parseInt(pet.params.idcolumna)
+    
+    var token = getTokenFromAuthHeader(pet)
+    payload = jwt.decode(token, secret)
 
     if (isNaN(idcolumna) || isNaN(idtablero)){
         res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
         res.send({cod:400, mensaje:"El id no es un numero"})
     }
     else{
-        let sql = `SELECT *
-           FROM columnas
-           WHERE id = ? and tablero_id = ?`;
+        //comprobamos que el tablero le pertenece
+        let sql1 = `SELECT id, nombre, user_id
+        FROM tableros
+        WHERE id  = ?`;
 
-        db.get(sql, [idcolumna, idtablero], (err, row) => {
-        if (err || row == null) {
-            res.status(404)  
-            res.send({cod:404, mensaje:"La columna no existe"})
-        }
-        else{
-            let sql2 = `SELECT id, nombre
-            FROM tarjetas WHERE
-            columna_id = ?`;
-            db.all(sql2, idtablero, (err, rows) => {
-                if (err || rows == null) {
-                    res.status(404)  
-                    res.send({cod:404, mensaje:"El tablero no tiene columnas"})
+        db.get(sql1, [idtablero], (err, row) => {
+            if (err || row == null) {       //comprobamos que existe el tablero
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:404, mensaje:"El item no existe"})
+            }
+            else {
+                //comprobamos que el usaurio logeado es el dueño del tablero
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos para ver este tablero"})
                 }
                 else{
-                    res.send({tarjetas: Array.from(rows.values())})
+                    //si todo va bien, devolvemos las tarjetas
+                    let sql = `SELECT *
+                    FROM columnas
+                    WHERE id = ? and tablero_id = ?`;
+
+                    db.get(sql, [idcolumna, idtablero], (err, row) => {
+                    if (err || row == null) {
+                        res.status(404)  
+                        res.send({cod:404, mensaje:"La columna no existe"})
+                    }
+                    else{
+                        let sql2 = `SELECT id, nombre
+                        FROM tarjetas WHERE
+                        columna_id = ?`;
+                        db.all(sql2, idtablero, (err, rows) => {
+                            if (err || rows == null) {
+                                res.status(404)  
+                                res.send({cod:404, mensaje:"El tablero no tiene columnas"})
+                            }
+                            else{
+                                res.send({tarjetas: Array.from(rows.values())})
+                            }
+                        })
+                    }
+                    })
                 }
-            })
-        }
-        })
+            }
+        });
     }
+
 })
 
 // update de una tarjeta CHECK
