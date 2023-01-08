@@ -98,19 +98,24 @@ function chequeaJWT(pet, resp, next) {
     }
 }
 
-//get de una coleccion FUTURO-CHECK?
-app.get('/tableros', function(pet, res) {
+//get de una coleccion CHECK
+app.get('/tableros', chequeaJWT, function(pet, res) {
 
     var offset = pet.query.offset !== undefined && !isNaN(pet.query.offset) && parseInt(pet.query.offset) >= 0 ? parseInt(pet.query.offset) : 0; // Por defecto el offset sera 0
     var limit = pet.query.limit !== undefined && !isNaN(pet.query.limit) && parseInt(pet.query.limit) >= 0 ? parseInt(pet.query.limit) : 10; // Por defecto el limite sera 10
 
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
+
+
     let sql = `SELECT id, nombre, user_id, descripcion
-    FROM tableros LIMIT ? OFFSET ?`;
+    FROM tableros WHERE user_id = ? LIMIT ? OFFSET ?`;
 
     let sqlCount = `SELECT id
-    FROM tableros`;
+    FROM tableros WHERE user_id = ?`;
 
-    db.all(sql, [limit, offset], (err, rows) => {
+    db.all(sql, [payload.id, limit, offset], (err, rows) => {
         if (err || rows == null) {
             res.status(404)  
             res.header('Access-Control-Allow-Origin', "*")
@@ -133,31 +138,59 @@ app.get('/tableros', function(pet, res) {
 })
 
 //get de un recurso sabiendo su id FUTURO-CHECK
-app.get('/tableros/:id', function(pet,res){
+app.get('/tableros/:id', chequeaJWT, function(pet,res){
 
     var id = parseInt(pet.params.id)
     
+    var token = getTokenFromAuthHeader(pet)
+    
+    payload = jwt.decode(token, secret)
+
     if (isNaN(id)){
         res.status(400)
         res.header('Access-Control-Allow-Origin', "*")
         res.send({cod:400, mensaje:"El item no es un numero"})
     }
     else{
-        let sql = `SELECT id, nombre, user_id, descripcion
-           FROM tableros
-           WHERE id  = ?`;
 
-        db.get(sql, [id], (err, row) => {
+        //comprobamos si el tablero le pertenece 
+        let sqlComprobar = `SELECT id, nombre, user_id, descripcion
+        FROM tableros
+        WHERE id  = ?`;
+
+        db.get(sqlComprobar, [id], (err, row) => {
             if (err || row == null) {
-                res.status(404) 
-                res.header('Access-Control-Allow-Origin', "*") 
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
                 res.send({cod:404, mensaje:"El item no existe"})
             }
             else {
-                res.header('Access-Control-Allow-Origin', "*")
-                res.send({tablero: row})
+                if (row.user_id != payload.id){
+                    res.status(403)
+                    res.header('Access-Control-Allow-Origin', "*")
+                    res.send({cod:403, mensaje:"No tienes permisos"})
+                }
+                else{
+                    //el tablero existe y le pertenece
+                    let sql = `SELECT id, nombre, user_id, descripcion
+                    FROM tableros
+                    WHERE id  = ?`;
+            
+                    db.get(sql, [id], (err, row) => {
+                        if (err || row == null) {
+                            res.status(404) 
+                            res.header('Access-Control-Allow-Origin', "*") 
+                            res.send({cod:404, mensaje:"El item no existe"})
+                        }
+                        else {
+                            res.header('Access-Control-Allow-Origin', "*")
+                            res.send({tablero: row})
+                        }
+                    });
+                }
             }
         });
+        
     }
     
 })
