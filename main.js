@@ -1098,6 +1098,89 @@ app.delete('/tableros/:idtablero/columnas/:idcolumna', chequeaJWT, function(pet,
     }
 })
 
+// Borrar tarjeta CHECK
+app.delete('/tableros/:idtablero/columnas/:idcolumna/tarjetas/:idtarjeta', chequeaJWT, function(pet,res) {
+    var idtablero = parseInt(pet.params.idtablero)
+    var idcolumna = parseInt(pet.params.idcolumna)
+    var idtarjeta = parseInt(pet.params.idtarjeta)
+
+    var token = getTokenFromAuthHeader(pet)
+
+    payload = jwt.decode(token, secret)
+
+    if (isNaN(idtarjeta) || isNaN(idcolumna) || isNaN(idtablero)) {
+        res.status(400)
+        res.header('Access-Control-Allow-Origin', "*")
+        res.send({cod:400, mensaje:"El item no es un numero"})
+    }
+    else {
+        //primero, comprobar que el usuario es el propietario del tablero
+        let sql1 = `SELECT *
+            FROM tableros
+            WHERE id = ?`;
+
+        db.get(sql1, [idtablero], (err, row) => {
+            if (err || row == null) {
+                res.status(404)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:404, mensaje:"El tablero no existe"})
+            }
+            else if (row.user_id != payload.id) {
+                res.status(403)
+                res.header('Access-Control-Allow-Origin', "*")
+                res.send({cod:403, mensaje:"No tienes permisos para modificar este tablero"})
+            }
+            else {
+                //comprobar que la columna pertenece al tablero
+                let sql = `SELECT id
+                    FROM columnas
+                    WHERE id = ? and tablero_id = ?`;
+                
+                db.get(sql, [idcolumna, idtablero], (err, row) => {
+                    if (err || row == null) {
+                        res.status(404)
+                        res.header('Access-Control-Allow-Origin', "*")
+                        console.log("La columna no existe")
+                        res.send({cod:404, mensaje:"El item no existe"})
+                    }
+                    else {
+                        //comprobar que la tarjeta pertenece a la columna
+                        let sql2 = `SELECT id
+                            FROM tarjetas
+                            WHERE id = ? and columna_id = ?`;
+                        
+                        db.get(sql2, [idtarjeta, idcolumna], (err, row) => {
+                            if (err || row == null) {
+                                res.status(404)
+                                res.header('Access-Control-Allow-Origin', "*")
+                                console.log("La tarjeta no existe")
+                                res.send({cod:404, mensaje:"El item no existe"})
+                            }
+                            else {
+                                let sql3 = `DELETE FROM tarjetas WHERE id = ?`;
+                                db.run(sql3, [idtarjeta], function(err, row) {
+                                    if (err) {
+                                        console.log(err)
+                                        res.status(500)
+                                        res.header('Access-Control-Allow-Origin', "*")
+                                        console.log("No se ha podido borrar")
+                                        res.send({cod:500, mensaje:"No se ha podido borrar"})
+                                    }
+                                    else {
+                                        res.header('Access-Control-Allow-Origin', "*")
+                                        console.log("Borrado")
+                                        res.send({cod:200, mensaje:"Borrado"})
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+})
+
 // Post registro nuevo usuario
 app.post('/usuarios/', function(pet,res) { 
    
